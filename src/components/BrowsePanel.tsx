@@ -17,7 +17,7 @@ interface SportEvent {
 }
 
 interface Props {
-  onWatchTogether: (title: string, streamUrl: string, homeTeamLogo?: string, awayTeamLogo?: string) => void;
+  onWatchTogether: (title: string, streamUrl: string, homeTeamLogo?: string, awayTeamLogo?: string) => Promise<string | null>;
   onSchedule: (title: string, streamUrl: string, startTime: string, endTime: string, homeTeamLogo?: string, awayTeamLogo?: string) => void;
 }
 
@@ -54,10 +54,14 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
 
   const streamUrl = (e: SportEvent) => `https://www.tv4play.se/program/${e.id}/${e.slug}`;
 
-  const handlePick = (e: SportEvent) => {
+  const handlePick = async (e: SportEvent) => {
     if (isLive(e)) {
       setLaunchingId(e.id);
-      onWatchTogether(e.title, streamUrl(e), e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
+      const joinUrl = await onWatchTogether(e.title, streamUrl(e), e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
+      if (joinUrl) {
+        window.open(joinUrl, "_blank");
+        window.location.href = streamUrl(e);
+      }
       setTimeout(() => setLaunchingId(null), 1500);
     } else {
       setPendingEvent(e);
@@ -69,9 +73,13 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
     setPendingEvent(null);
   };
 
-  const handleStartNow = (e: SportEvent) => {
+  const handleStartNow = async (e: SportEvent) => {
     setLaunchingId(e.id);
-    onWatchTogether(e.title, streamUrl(e), e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
+    const joinUrl = await onWatchTogether(e.title, streamUrl(e), e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
+    if (joinUrl) {
+      window.open(joinUrl, "_blank");
+      window.location.href = streamUrl(e);
+    }
     setPendingEvent(null);
     setTimeout(() => setLaunchingId(null), 1500);
   };
