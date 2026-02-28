@@ -32,7 +32,7 @@ export default function MeetingList({ meetings, onJoin, onDelete }: Props) {
             key={m.id}
             className="group border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 sm:p-4 hover:border-neutral-300 dark:hover:border-neutral-600 transition bg-white dark:bg-neutral-800/50"
           >
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {isLive && (
