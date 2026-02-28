@@ -52,7 +52,7 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
     }
   };
 
-  const streamUrl = (e: SportEvent) => `https://www.tv4play.se/program/${e.slug}`;
+  const streamUrl = (e: SportEvent) => `https://www.tv4play.se/program/${e.id}/${e.slug}`;
 
   const handlePick = (e: SportEvent) => {
     if (isLive(e)) {

@@ -50,8 +50,8 @@ export default function Home() {
     const end = new Date(start.getTime() + 180 * 60000);
     const meeting = await createMeeting(`📺 ${title}`, start.toISOString(), end.toISOString(), streamUrl, homeTeamLogo, awayTeamLogo);
     if (meeting) {
-      window.open(streamUrl, "_blank");
       window.open(meeting.joinUrl, "_blank");
+      setTimeout(() => window.open(streamUrl, "_blank"), 500);
     }
   };
 
@@ -60,8 +60,8 @@ export default function Home() {
   };
 
   const handleStartWatching = (m: Meeting) => {
-    if (m.streamUrl) window.open(m.streamUrl, "_blank");
     window.open(m.joinUrl, "_blank");
+    if (m.streamUrl) setTimeout(() => window.open(m.streamUrl, "_blank"), 500);
   };
 
   const deleteMeeting = async (id: string) => {
@@ -83,6 +83,16 @@ export default function Home() {
   const upcoming = meetings.filter((m) => new Date(m.startDateTime) > now);
   const active = meetings.filter((m) => new Date(m.startDateTime) <= now);
 
+  const handleJoin = (m: Meeting) => {
+    const isLive = new Date() >= new Date(m.startDateTime) && new Date() <= new Date(m.endDateTime);
+    if (isLive && m.streamUrl) {
+      window.open(m.joinUrl, "_blank");
+      setTimeout(() => window.open(m.streamUrl, "_blank"), 500);
+    } else {
+      setJoinMeeting(m);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <Header userName={session.user?.name} onSignOut={() => signOut()} />
@@ -101,7 +111,7 @@ export default function Home() {
             <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Active Meetings</h2>
             <span className="text-xs text-neutral-400">{active.length} meeting{active.length !== 1 ? "s" : ""}</span>
           </div>
-          <MeetingList meetings={active} onJoin={setJoinMeeting} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
+          <MeetingList meetings={active} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
         </div>
 
         {upcoming.length > 0 && (
@@ -110,7 +120,7 @@ export default function Home() {
               <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">📅 Upcoming Watch Parties</h2>
               <span className="text-xs text-neutral-400">{upcoming.length}</span>
             </div>
-            <MeetingList meetings={upcoming} onJoin={setJoinMeeting} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
+            <MeetingList meetings={upcoming} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
           </div>
         )}
       </div>

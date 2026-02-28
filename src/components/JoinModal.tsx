@@ -25,6 +25,16 @@ export default function JoinModal({ meeting, onClose }: Props) {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
+          {meeting.streamUrl && (
+            <a
+              href={meeting.streamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-red-600 text-white py-3 sm:py-2.5 rounded-lg hover:bg-red-500 transition font-medium text-center text-sm"
+            >
+              📺 Open Stream ↗
+            </a>
+          )}
           <a
             href={meeting.joinUrl}
             target="_blank"
