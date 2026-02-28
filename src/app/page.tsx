@@ -11,19 +11,6 @@ import MeetingList from "@/components/MeetingList";
 import JoinModal from "@/components/JoinModal";
 import BrowsePanel from "@/components/BrowsePanel";
 
-function openBothTabs(url1: string, url2: string) {
-  // Open first tab normally
-  window.open(url1, "_blank");
-  // Open second tab via anchor click to bypass popup blocker
-  const a = document.createElement("a");
-  a.href = url2;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
 export default function Home() {
   const { data: session, status } = useSession();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -69,13 +56,10 @@ export default function Home() {
     await createMeeting(`📺 ${title}`, startTime, endTime, streamUrl, homeTeamLogo, awayTeamLogo);
   };
 
-  // "Start Watching" on a meeting card — not async, so both tabs open fine
+  // "Start Watching" on a meeting card
   const handleStartWatching = (m: Meeting) => {
-    if (m.streamUrl) {
-      openBothTabs(m.streamUrl, m.joinUrl);
-    } else {
-      window.open(m.joinUrl, "_blank");
-    }
+    window.open(m.joinUrl, "_blank");
+    if (m.streamUrl) window.location.href = m.streamUrl;
   };
 
   const deleteMeeting = async (id: string) => {
@@ -99,12 +83,7 @@ export default function Home() {
 
   // "Join" on a live stream meeting opens both tabs; otherwise shows modal
   const handleJoin = (m: Meeting) => {
-    const isLive = new Date() >= new Date(m.startDateTime) && new Date() <= new Date(m.endDateTime);
-    if (isLive && m.streamUrl) {
-      openBothTabs(m.streamUrl, m.joinUrl);
-    } else {
-      setJoinMeeting(m);
-    }
+    setJoinMeeting(m);
   };
 
   return (

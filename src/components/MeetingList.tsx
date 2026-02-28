@@ -66,14 +66,6 @@ export default function MeetingList({ meetings, onJoin, onDelete, onStartWatchin
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {m.streamUrl && isLive && onStartWatching && (
-                  <button
-                    onClick={() => onStartWatching(m)}
-                    className="flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-500 transition"
-                  >
-                    🔴 Start Watching
-                  </button>
-                )}
                 <button
                   onClick={() => onJoin(m)}
                   className="flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-500 transition"
