@@ -4,6 +4,9 @@ export interface CreateMeetingDto {
   subject: string;
   startDateTime: string;
   endDateTime: string;
+  streamUrl?: string;
+  homeTeamLogo?: string;
+  awayTeamLogo?: string;
 }
 
 export const meetingService = {
@@ -11,7 +14,7 @@ export const meetingService = {
     if (!dto.subject || !dto.startDateTime || !dto.endDateTime) {
       throw new Error("subject, startDateTime, and endDateTime are required");
     }
-    return meetingRepository.create(dto.subject, dto.startDateTime, dto.endDateTime);
+    return meetingRepository.create(dto.subject, dto.startDateTime, dto.endDateTime, dto.streamUrl, dto.homeTeamLogo, dto.awayTeamLogo);
   },
 
   getById(id: string): Meeting | undefined {

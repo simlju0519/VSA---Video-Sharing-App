@@ -6,13 +6,16 @@ export interface Meeting {
   joinUrl: string;
   startDateTime: string;
   endDateTime: string;
+  streamUrl?: string;
+  homeTeamLogo?: string;
+  awayTeamLogo?: string;
   createdAt: string;
 }
 
 const meetings: Meeting[] = [];
 
 export const meetingRepository = {
-  create(subject: string, startTime: string, endTime: string): Meeting {
+  create(subject: string, startTime: string, endTime: string, streamUrl?: string, homeTeamLogo?: string, awayTeamLogo?: string): Meeting {
     const roomId = randomUUID() + randomBytes(16).toString("hex");
     const meeting: Meeting = {
       id: randomUUID(),
@@ -20,6 +23,9 @@ export const meetingRepository = {
       joinUrl: `${process.env.JITSI_BASE_URL || "https://meet.jit.si"}/vsa-${roomId}`,
       startDateTime: startTime,
       endDateTime: endTime,
+      streamUrl,
+      homeTeamLogo,
+      awayTeamLogo,
       createdAt: new Date().toISOString(),
     };
     meetings.push(meeting);
