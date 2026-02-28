@@ -61,7 +61,7 @@ export default function Home() {
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <Header userName={session.user?.name} onSignOut={() => signOut()} />
 
-      <div className="max-w-3xl mx-auto p-6 flex flex-col gap-6">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
         <CreateMeetingPanel
           loading={loading}
           onQuickMeeting={handleQuickMeeting}
