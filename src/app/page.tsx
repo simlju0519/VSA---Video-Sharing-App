@@ -23,7 +23,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (session) fetchMeetings();
+    if (!session) return;
+    fetchMeetings();
+    const interval = setInterval(fetchMeetings, 5000);
+    return () => clearInterval(interval);
   }, [session, fetchMeetings]);
 
   const createMeeting = async (subject: string, startDateTime: string, endDateTime: string, streamUrl?: string, homeTeamLogo?: string, awayTeamLogo?: string): Promise<Meeting | null> => {
