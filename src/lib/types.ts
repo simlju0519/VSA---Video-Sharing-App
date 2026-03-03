@@ -7,6 +7,8 @@ export interface Meeting {
   streamUrl?: string;
   homeTeamLogo?: string;
   awayTeamLogo?: string;
+  watchers: string[];
+  notified: boolean;
 }
 
 export interface CreateMeetingDto {

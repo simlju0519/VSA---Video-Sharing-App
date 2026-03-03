@@ -7,16 +7,16 @@ export interface CreateChannelDto {
 }
 
 export const channelService = {
-  listAll(): Channel[] {
+  async listAll(): Promise<Channel[]> {
     return channelRepository.listAll();
   },
 
-  create(dto: CreateChannelDto): Channel {
+  async create(dto: CreateChannelDto): Promise<Channel> {
     if (!dto.name || !dto.streamUrl) throw new Error("name and streamUrl are required");
     return channelRepository.create(dto.name, dto.streamUrl, dto.category || "Other");
   },
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     return channelRepository.delete(id);
   },
 };

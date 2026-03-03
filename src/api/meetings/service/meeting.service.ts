@@ -10,22 +10,27 @@ export interface CreateMeetingDto {
 }
 
 export const meetingService = {
-  create(dto: CreateMeetingDto): Meeting {
+  async create(dto: CreateMeetingDto): Promise<Meeting> {
     if (!dto.subject || !dto.startDateTime || !dto.endDateTime) {
       throw new Error("subject, startDateTime, and endDateTime are required");
     }
     return meetingRepository.create(dto.subject, dto.startDateTime, dto.endDateTime, dto.streamUrl, dto.homeTeamLogo, dto.awayTeamLogo);
   },
 
-  getById(id: string): Meeting | undefined {
+  async getById(id: string): Promise<Meeting | undefined> {
     return meetingRepository.getById(id);
   },
 
-  listAll(): Meeting[] {
+  async listAll(): Promise<Meeting[]> {
     return meetingRepository.listAll();
   },
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     return meetingRepository.delete(id);
+  },
+
+  async toggleWatch(id: string, email: string): Promise<Meeting | undefined> {
+    await meetingRepository.toggleWatch(id, email);
+    return meetingRepository.getById(id);
   },
 };

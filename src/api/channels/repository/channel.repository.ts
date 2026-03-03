@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { query } from "@/lib/db";
 
 export interface Channel {
   id: string;
@@ -7,31 +8,32 @@ export interface Channel {
   category: string;
 }
 
-const channels: Channel[] = [
-  { id: randomUUID(), name: "TV4 Play - SHL", streamUrl: "https://www.tv4play.se/kategorier/shl", category: "Sports" },
-  { id: randomUUID(), name: "TV4 Play - Live", streamUrl: "https://www.tv4play.se/live", category: "Live TV" },
-  { id: randomUUID(), name: "TV4 Play - Fotboll", streamUrl: "https://www.tv4play.se/kategorier/fotboll", category: "Sports" },
-];
+interface ChannelRow { id: string; name: string; stream_url: string; category: string }
+
+function toChannel(r: ChannelRow): Channel {
+  return { id: r.id, name: r.name, streamUrl: r.stream_url, category: r.category };
+}
 
 export const channelRepository = {
-  listAll(): Channel[] {
-    return channels;
+  async listAll(): Promise<Channel[]> {
+    return (await query<ChannelRow>("SELECT * FROM channels ORDER BY name")).map(toChannel);
   },
 
-  getById(id: string): Channel | undefined {
-    return channels.find((c) => c.id === id);
+  async getById(id: string): Promise<Channel | undefined> {
+    const rows = await query<ChannelRow>("SELECT * FROM channels WHERE id = $1", [id]);
+    return rows[0] ? toChannel(rows[0]) : undefined;
   },
 
-  create(name: string, streamUrl: string, category: string): Channel {
-    const channel: Channel = { id: randomUUID(), name, streamUrl, category };
-    channels.push(channel);
-    return channel;
+  async create(name: string, streamUrl: string, category: string): Promise<Channel> {
+    const rows = await query<ChannelRow>(
+      "INSERT INTO channels (id, name, stream_url, category) VALUES ($1,$2,$3,$4) RETURNING *",
+      [randomUUID(), name, streamUrl, category]
+    );
+    return toChannel(rows[0]);
   },
 
-  delete(id: string): boolean {
-    const idx = channels.findIndex((c) => c.id === id);
-    if (idx === -1) return false;
-    channels.splice(idx, 1);
-    return true;
+  async delete(id: string): Promise<boolean> {
+    const rows = await query<ChannelRow>("DELETE FROM channels WHERE id = $1 RETURNING id", [id]);
+    return rows.length > 0;
   },
 };

@@ -49,6 +49,7 @@ export default function Home() {
     const start = new Date();
     const end = new Date(start.getTime() + 180 * 60000);
     const meeting = await createMeeting(`📺 ${title}`, start.toISOString(), end.toISOString(), streamUrl, homeTeamLogo, awayTeamLogo);
+    if (meeting) notifyWatchers(meeting.id);
     return meeting?.joinUrl || null;
   };
 
@@ -56,10 +57,19 @@ export default function Home() {
     await createMeeting(`📺 ${title}`, startTime, endTime, streamUrl, homeTeamLogo, awayTeamLogo);
   };
 
-  // "Start Watching" on a meeting card
   const handleStartWatching = (m: Meeting) => {
     window.open(m.joinUrl, "_blank");
     if (m.streamUrl) window.location.href = m.streamUrl;
+  };
+
+  const toggleWatch = async (id: string) => {
+    await fetch(`/api/meetings/${id}/watch`, { method: "POST" });
+    fetchMeetings();
+  };
+
+  const notifyWatchers = async (id: string) => {
+    await fetch(`/api/meetings/${id}/notify`, { method: "POST" });
+    fetchMeetings();
   };
 
   const deleteMeeting = async (id: string) => {
@@ -104,7 +114,7 @@ export default function Home() {
             <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Active Meetings</h2>
             <span className="text-xs text-neutral-400">{active.length} meeting{active.length !== 1 ? "s" : ""}</span>
           </div>
-          <MeetingList meetings={active} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
+          <MeetingList meetings={active} userEmail={session.user?.email || undefined} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} onToggleWatch={toggleWatch} />
         </div>
 
         {upcoming.length > 0 && (
@@ -113,12 +123,12 @@ export default function Home() {
               <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">📅 Upcoming Watch Parties</h2>
               <span className="text-xs text-neutral-400">{upcoming.length}</span>
             </div>
-            <MeetingList meetings={upcoming} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} />
+            <MeetingList meetings={upcoming} userEmail={session.user?.email || undefined} onJoin={handleJoin} onDelete={deleteMeeting} onStartWatching={handleStartWatching} onToggleWatch={toggleWatch} />
           </div>
         )}
       </div>
 
-      {joinMeeting && <JoinModal meeting={joinMeeting} onClose={() => setJoinMeeting(null)} />}
+      {joinMeeting && <JoinModal meeting={joinMeeting} onClose={() => setJoinMeeting(null)} onNotify={notifyWatchers} />}
     </div>
   );
 }

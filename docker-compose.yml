@@ -1,4 +1,16 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vsa
+      POSTGRES_PASSWORD: vsa
+      POSTGRES_DB: vsa
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   app:
     build: .
     ports:
@@ -9,4 +21,9 @@ services:
       - /app/.next
     env_file:
       - .env.local
+    depends_on:
+      - db
     restart: unless-stopped
+
+volumes:
+  pgdata:
