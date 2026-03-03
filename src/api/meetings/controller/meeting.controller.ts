@@ -62,8 +62,12 @@ export const meetingController = {
     }
     if (meeting.notified || meeting.watchers.length === 0) return NextResponse.json({ sent: 0 });
     await meetingRepository.setNotified(id);
-    sendMeetingStarted(meeting.watchers, meeting.subject, meeting.joinUrl, meeting.streamUrl).catch((err) => console.error("[NOTIFY] Email failed:", err));
-    console.log(`[NOTIFY] Sent to ${meeting.watchers.length} watchers for "${meeting.subject}":`, meeting.watchers);
+    try {
+      await sendMeetingStarted(meeting.watchers, meeting.subject, meeting.joinUrl, meeting.streamUrl);
+      console.log(`[NOTIFY] Sent to ${meeting.watchers.length} watchers for "${meeting.subject}":`, meeting.watchers);
+    } catch (err) {
+      console.error("[NOTIFY] Email failed:", err);
+    }
     return NextResponse.json({ sent: meeting.watchers.length });
   },
 };
