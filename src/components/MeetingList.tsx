@@ -70,7 +70,7 @@ export default function MeetingList({ meetings, userEmail, onJoin, onDelete, onT
                   <h3 className="font-medium text-neutral-900 dark:text-white truncate">{m.subject}</h3>
                 </div>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                  {start.toLocaleDateString()} {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  {start.toLocaleDateString("sv-SE")}{" · "}{start.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })} – {end.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}
                   {m.watchers?.length > 0 && <span className="ml-2">👀 {m.watchers.length}</span>}
                 </p>
               </div>

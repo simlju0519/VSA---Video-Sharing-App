@@ -20,7 +20,7 @@ export default function JoinModal({ meeting, onClose, onNotify }: Props) {
           <div>
             <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">{meeting.subject}</h3>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-              {new Date(meeting.startDateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(meeting.endDateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(meeting.startDateTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })} – {new Date(meeting.endDateTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}
             </p>
             {meeting.watchers?.length > 0 && (
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">👀 {meeting.watchers.length} watching</p>

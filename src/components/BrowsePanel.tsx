@@ -82,7 +82,7 @@ async function fetchViaplay(param: string): Promise<BrowseEvent[]> {
     endTime: e.endTime,
     streamUrl: e.streamUrl,
     imageUrl: e.imageUrl,
-    readableTime: new Date(e.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    readableTime: new Date(e.startTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" }),
   }));
 }
 
@@ -171,7 +171,7 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">⏳ This match hasn&apos;t started yet</p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
               <span className="font-medium">{pendingEvent.title}</span> starts at{" "}
-              {new Date(pendingEvent.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(pendingEvent.startTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}
             </p>
             <div className="flex gap-2">
               <button onClick={() => handleSchedule(pendingEvent)} className="flex-1 py-2 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition">📅 Plan Watch Party</button>
@@ -228,7 +228,7 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
                           <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{e.title}</p>
                         </div>
                         <p className="text-xs text-neutral-400 truncate">
-                          {e.readableTime || new Date(e.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {e.readableTime || new Date(e.startTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}
                           {e.arena ? ` · ${e.arena}` : ""}
                           {e.studio ? " · 📺 Studio" : ""}
                         </p>
