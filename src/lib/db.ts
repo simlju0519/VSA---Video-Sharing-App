@@ -3,11 +3,16 @@ import { Pool } from "pg";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export async function query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]> {
+  await ensureDb();
   const { rows } = await pool.query(text, params);
   return rows as T[];
 }
 
-export async function initDb() {
+let initialized = false;
+
+export async function ensureDb() {
+  if (initialized) return;
+  initialized = true;
   await pool.query(`
     CREATE TABLE IF NOT EXISTS meetings (
       id TEXT PRIMARY KEY,
@@ -30,7 +35,6 @@ export async function initDb() {
     );
   `);
 
-  // Seed default channels if empty
   const { rows } = await pool.query("SELECT COUNT(*) FROM channels");
   if (parseInt(rows[0].count) === 0) {
     await pool.query(
@@ -41,6 +45,3 @@ export async function initDb() {
     );
   }
 }
-
-// Auto-init on first import
-initDb().catch(console.error);
