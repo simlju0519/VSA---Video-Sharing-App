@@ -6,7 +6,11 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendMeetingStarted(to: string[], meetingSubject: string, joinUrl: string, streamUrl?: string) {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD || to.length === 0) return;
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.warn("[NOTIFY] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email");
+    return;
+  }
+  if (to.length === 0) return;
 
   const streamLink = streamUrl ? `<p><a href="${streamUrl}">📺 Open Stream</a></p>` : "";
 
