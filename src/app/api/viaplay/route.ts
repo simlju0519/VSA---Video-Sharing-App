@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
   const events = blocks
     .filter((b: { type: string }) => b.type === "list")
     .flatMap((b: { _embedded?: { "viaplay:products"?: Product[] } }) =>
-      (b._embedded?.["viaplay:products"] || []).map((p) => mapProduct(p, section))
+      (b._embedded?.["viaplay:products"] || [])
+        .filter((p: Product) => p.epg?.start && p.epg?.end)
+        .map((p) => mapProduct(p, section))
     )
     .filter((e: { id: string }) => !seen.has(e.id) && seen.add(e.id));
 

@@ -1,25 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Spinner from "./Spinner";
 
-/* ── League config ── */
-interface LeagueConfig {
+/* ── Types ── */
+interface League {
   id: string;
   name: string;
   subtitle: string;
   emoji: string;
-  provider: "tv4" | "viaplay";
-  /** tv4: page id, viaplay: content path */
+  logo_dir: string | null;
+  provider: string;
   param: string;
+  category: string;
+  starred: boolean;
 }
 
-const LEAGUES: LeagueConfig[] = [
-  { id: "shl", name: "SHL", subtitle: "Svenska Hockeyligan", emoji: "🏒", provider: "tv4", param: "shl" },
-  { id: "chl", name: "CHL", subtitle: "Champions Hockey League", emoji: "🏆", provider: "viaplay", param: "sport/ishockey/champions-hockey-league" },
-];
-
-/* ── Shared event type ── */
 interface BrowseEvent {
   id: string;
   title: string;
@@ -32,7 +28,6 @@ interface BrowseEvent {
   readableTime?: string;
   arena?: string;
   studio?: boolean;
-  live?: boolean;
 }
 
 interface Props {
@@ -40,6 +35,7 @@ interface Props {
   onSchedule: (title: string, streamUrl: string, startTime: string, endTime: string, homeTeamLogo?: string, awayTeamLogo?: string) => void;
 }
 
+/* ── Helpers ── */
 function isLive(e: BrowseEvent) {
   const now = Date.now();
   return new Date(e.startTime).getTime() <= now && new Date(e.endTime).getTime() > now;
@@ -51,99 +47,119 @@ function isToday(e: BrowseEvent) {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
 }
 
+type TV4Event = { id: string; title: string; slug: string; startTime: string; endTime: string; homeTeamLogo: string | null; awayTeamLogo: string | null; readableTime: string; arena: string; studio: boolean };
+type ViaplayEvent = { id: string; title: string; startTime: string; endTime: string; streamUrl: string; imageUrl: string | null };
+
 async function fetchTV4(param: string): Promise<BrowseEvent[]> {
   const res = await fetch(`/api/tv4?page=${param}`);
-  const data = await res.json();
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  const data = JSON.parse(text);
   return (data.panels || []).flatMap((p: { events: TV4Event[] }) =>
     p.events.map((e: TV4Event): BrowseEvent => ({
-      id: e.id,
-      title: e.title,
-      startTime: e.startTime,
-      endTime: e.endTime,
+      id: e.id, title: e.title, startTime: e.startTime, endTime: e.endTime,
       streamUrl: `https://www.tv4play.se/program/${e.id}/${e.slug}`,
-      homeTeamLogo: e.homeTeamLogo,
-      awayTeamLogo: e.awayTeamLogo,
-      readableTime: e.readableTime,
-      arena: e.arena,
-      studio: e.studio,
+      homeTeamLogo: e.homeTeamLogo, awayTeamLogo: e.awayTeamLogo,
+      readableTime: e.readableTime, arena: e.arena, studio: e.studio,
     }))
   );
 }
 
-type TV4Event = { id: string; title: string; slug: string; startTime: string; endTime: string; homeTeamLogo: string | null; awayTeamLogo: string | null; readableTime: string; arena: string; studio: boolean };
-
 async function fetchViaplay(param: string): Promise<BrowseEvent[]> {
   const res = await fetch(`/api/viaplay?path=${encodeURIComponent(param)}`);
-  const data = await res.json();
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  const data = JSON.parse(text);
   return (data.events || []).map((e: ViaplayEvent): BrowseEvent => ({
-    id: e.id,
-    title: e.title,
-    startTime: e.startTime,
-    endTime: e.endTime,
-    streamUrl: e.streamUrl,
-    imageUrl: e.imageUrl,
+    id: e.id, title: e.title, startTime: e.startTime, endTime: e.endTime,
+    streamUrl: e.streamUrl, imageUrl: e.imageUrl,
     readableTime: new Date(e.startTime).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" }),
   }));
 }
 
-type ViaplayEvent = { id: string; title: string; startTime: string; endTime: string; streamUrl: string; imageUrl: string | null };
+const FETCHERS: Record<string, (param: string) => Promise<BrowseEvent[]>> = { tv4: fetchTV4, viaplay: fetchViaplay };
 
-const FETCHERS: Record<string, (param: string) => Promise<BrowseEvent[]>> = {
-  tv4: fetchTV4,
-  viaplay: fetchViaplay,
-};
+/* ── Logo component ── */
+function LeagueLogo({ league, size = "w-8 h-8" }: { league: League; size?: string }) {
+  if (!league.logo_dir) return <span className="text-2xl">{league.emoji}</span>;
+  const light = `/logos/${league.logo_dir}/light.png`;
+  const dark = `/logos/${league.logo_dir}/dark.png`;
+  return (
+    <>
+      <img src={light} alt={league.name} className={`${size} object-contain dark:hidden`} onError={(e) => { (e.target as HTMLImageElement).src = dark; }} />
+      <img src={dark} alt={league.name} className={`${size} object-contain hidden dark:block`} onError={(e) => { (e.target as HTMLImageElement).src = light; }} />
+    </>
+  );
+}
 
+/* ── Main component ── */
 export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
   const [step, setStep] = useState<"closed" | "leagues" | "matches">("closed");
-  const [activeLeague, setActiveLeague] = useState<LeagueConfig | null>(null);
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [activeLeague, setActiveLeague] = useState<League | null>(null);
   const [matches, setMatches] = useState<BrowseEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [launchingId, setLaunchingId] = useState<string | null>(null);
   const [pendingEvent, setPendingEvent] = useState<BrowseEvent | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const loadLeague = async (league: LeagueConfig) => {
+  useEffect(() => {
+    if (step === "leagues") {
+      fetch("/api/leagues").then((r) => r.json()).then(setLeagues);
+    }
+  }, [step]);
+
+  const categories = [...new Set(leagues.map((l) => l.category))];
+  const starred = leagues.filter((l) => l.starred);
+  const filtered = leagues.filter((l) => {
+    if (search && !l.name.toLowerCase().includes(search.toLowerCase()) && !l.subtitle?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (activeCategory && l.category !== activeCategory) return false;
+    return true;
+  });
+
+  const toggleStar = async (id: string) => {
+    const res = await fetch(`/api/leagues/${id}/star`, { method: "POST" });
+    if (res.ok) {
+      const { starred } = await res.json();
+      setLeagues((prev) => prev.map((l) => l.id === id ? { ...l, starred } : l));
+    }
+  };
+
+  const loadLeague = async (league: League) => {
     setActiveLeague(league);
     setStep("matches");
     setLoading(true);
     try {
-      const all = await FETCHERS[league.provider](league.param);
+      const fetcher = FETCHERS[league.provider];
+      if (!fetcher) { setMatches([]); return; }
+      const all = await fetcher(league.param);
       setMatches(all.filter((e) => isToday(e) || isLive(e)));
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handlePick = async (e: BrowseEvent) => {
     if (isLive(e)) {
       setLaunchingId(e.id);
       const joinUrl = await onWatchTogether(e.title, e.streamUrl, e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
-      if (joinUrl) {
-        window.open(joinUrl, "_blank");
-        window.location.href = e.streamUrl;
-      }
+      if (joinUrl) { window.open(joinUrl, "_blank"); window.location.href = e.streamUrl; }
       setTimeout(() => setLaunchingId(null), 1500);
-    } else {
-      setPendingEvent(e);
-    }
+    } else { setPendingEvent(e); }
   };
 
-  const handleSchedule = (e: BrowseEvent) => {
-    onSchedule(e.title, e.streamUrl, e.startTime, e.endTime, e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
-    setPendingEvent(null);
-  };
+  const handleSchedule = (e: BrowseEvent) => { onSchedule(e.title, e.streamUrl, e.startTime, e.endTime, e.homeTeamLogo || undefined, e.awayTeamLogo || undefined); setPendingEvent(null); };
 
   const handleStartNow = async (e: BrowseEvent) => {
     setLaunchingId(e.id);
     const joinUrl = await onWatchTogether(e.title, e.streamUrl, e.homeTeamLogo || undefined, e.awayTeamLogo || undefined);
-    if (joinUrl) {
-      window.open(joinUrl, "_blank");
-      window.location.href = e.streamUrl;
-    }
+    if (joinUrl) { window.open(joinUrl, "_blank"); window.location.href = e.streamUrl; }
     setPendingEvent(null);
     setTimeout(() => setLaunchingId(null), 1500);
   };
 
-  const close = () => { setStep("closed"); setMatches([]); setPendingEvent(null); setActiveLeague(null); };
+  const close = () => { setStep("closed"); setMatches([]); setPendingEvent(null); setActiveLeague(null); setSearch(""); setActiveCategory(null); };
 
   if (step === "closed") {
     return (
@@ -181,28 +197,67 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
           </div>
         )}
 
-        {/* League picker */}
+        {/* League browser */}
         {step === "leagues" && !pendingEvent && (
-          <div className="flex flex-col gap-2">
-            {LEAGUES.map((l) => (
-              <button key={l.id} onClick={() => loadLeague(l)} className="w-full flex items-center justify-between p-4 rounded-lg border border-neutral-100 dark:border-neutral-700/50 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{l.emoji}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-neutral-900 dark:text-white">{l.name}</p>
-                    <p className="text-xs text-neutral-400">{l.subtitle}</p>
-                  </div>
+          <div className="flex flex-col gap-3">
+            {/* Search */}
+            <input
+              type="text"
+              placeholder="Search leagues..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-sm text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:border-blue-400"
+            />
+
+            {/* Category tabs */}
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                onClick={() => setActiveCategory(null)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition ${!activeCategory ? "bg-blue-600 text-white" : "bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600"}`}
+              >All</button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setActiveCategory(activeCategory === c ? null : c)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${activeCategory === c ? "bg-blue-600 text-white" : "bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600"}`}
+                >{c}</button>
+              ))}
+            </div>
+
+            {/* Starred leagues */}
+            {!search && !activeCategory && starred.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">⭐ Favorites</p>
+                <div className="flex flex-col gap-1.5">
+                  {starred.map((l) => (
+                    <LeagueRow key={l.id} league={l} onPick={loadLeague} onToggleStar={toggleStar} />
+                  ))}
                 </div>
-                <span className="text-neutral-400">▸</span>
-              </button>
-            ))}
+              </div>
+            )}
+
+            {/* All / filtered leagues */}
+            <div>
+              {!search && !activeCategory && starred.length > 0 && (
+                <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">All Leagues</p>
+              )}
+              {filtered.length === 0 ? (
+                <p className="text-neutral-400 text-sm text-center py-4">No leagues found.</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {filtered.map((l) => (
+                    <LeagueRow key={l.id} league={l} onPick={loadLeague} onToggleStar={toggleStar} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Matches */}
         {step === "matches" && !pendingEvent && (
           <>
-            {activeLeague && <p className="text-xs text-neutral-400 mb-2">{activeLeague.emoji} {activeLeague.name}</p>}
+            {activeLeague && <p className="text-xs text-neutral-400 mb-2 flex items-center gap-1.5"><LeagueLogo league={activeLeague} size="w-4 h-4" /> {activeLeague.name}</p>}
             {loading ? (
               <div className="flex justify-center py-8"><Spinner className="w-5 h-5" /></div>
             ) : matches.length === 0 ? (
@@ -244,6 +299,31 @@ export default function BrowsePanel({ onWatchTogether, onSchedule }: Props) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── League row ── */
+function LeagueRow({ league, onPick, onToggleStar }: { league: League; onPick: (l: League) => void; onToggleStar: (id: string) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <button onClick={() => onPick(league)} className="flex-1 flex items-center justify-between p-3 rounded-lg border border-neutral-100 dark:border-neutral-700/50 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition">
+        <div className="flex items-center gap-3">
+          <LeagueLogo league={league} />
+          <div className="text-left">
+            <p className="text-sm font-medium text-neutral-900 dark:text-white">{league.name}</p>
+            <p className="text-xs text-neutral-400">{league.subtitle}</p>
+          </div>
+        </div>
+        <span className="text-neutral-400">▸</span>
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleStar(league.id); }}
+        className="p-2 text-lg hover:scale-110 transition"
+        title={league.starred ? "Remove from favorites" : "Add to favorites"}
+      >
+        {league.starred ? "⭐" : "☆"}
+      </button>
     </div>
   );
 }
